@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>杰克与魔豆 · 魔法气泡园 | 最终完美版</title>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <style>
+        /* -------------------- 全局重置 -------------------- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: #F5F7FA;
+            font-family: -apple-system, 'SF Pro Text', 'SF Pro Display', 'BlinkMacSystemFont', 'PingFang SC', 'Helvetica Neue', 'Segoe UI', Roboto, system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            font-weight: 450;
+            line-height: 1.4;
+            color: #1E2A3A;
+        }
+
+        .app-container {
+            max-width: 1280px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.96);
+            border-radius: 56px;
+            padding: 32px 36px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.02);
+            transition: all 0.2s;
+        }
+
+        .game-screen {
+            display: none;
+            width: 100%;
+            animation: fadeIn 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+
+        .active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 主标题区域 */
+        .main-title {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+        .main-title h1 {
+            font-size: 2.6rem;
+            font-weight: 620;
+            background: linear-gradient(135deg, #2C5F2D, #4F7A4B);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.015em;
+            margin-bottom: 12px;
+        }
+        .main-title p {
+            font-size: 1.1rem;
+            color: #5E6F8D;
+            font-weight: 470;
+        }
+
+        /* 卡片网格 */
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 28px;
+        }
+
+        .game-card {
+            background: #FFFFFF;
+            border-radius: 36px;
+            padding: 32px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04), 0 0 0 1px rgba(0, 0, 0, 0.02);
+            border: none;
+        }
+        .game-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(100, 200, 80, 0.2);
+            background: #FEFDF9;
+        }
+        .game-card div:first-child { font-size: 3.2rem; margin-bottom: 12px; }
+        .game-card h3 { font-size: 1.5rem; font-weight: 590; color: #1F3B2C; margin-bottom: 8px; }
+        .game-card p { font-size: 0.9rem; color: #6F7D95; line-height: 1.3; }
+
+        /* 头部导航 */
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .back-btn {
+            background: #F0F2F5;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 510;
+            color: #2C5F2D;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .back-btn:active { transform: scale(0.96); background: #E4E8ED; }
+
+        /* 游戏舞台 — 相对定位，用于固定顶部魔法条 */
+        .stage {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 540px;
+            background: #FEFCF7;
+            border-radius: 48px;
+            padding: 16px 24px 24px 24px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255,255,255,0.6);
+            border: 1px solid rgba(200, 210, 190, 0.3);
+        }
+
+        /* 内容区域：为顶部固定魔法条预留空间 */
+        .stage-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            gap: 12px;
+            padding-top: 75px;   /* 为绝对定位的魔法条留出空间，确保不被遮挡 */
+        }
+
+        /* 魔法顶部条 — 绝对固定，不随图案移动 */
+        .magic-top-bar {
+            position: absolute;
+            top: 16px;
+            left: 20px;
+            right: 20px;
+            z-index: 20;
+            background: #FEF5E8;
+            border-radius: 60px;
+            padding: 6px 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(2px);
+        }
+        .v-status {
+            background: #FFEFD6;
+            color: #BF5B1C;
+            font-weight: 540;
+            padding: 4px 16px;
+            border-radius: 60px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            opacity: 0;
+            transition: 0.2s;
+        }
+        .v-status.active {
+            opacity: 1;
+            animation: gentlePulse 1.2s infinite;
+        }
+        @keyframes gentlePulse {
+            0% { background: #FFEFD6; }
+            50% { background: #FFE4B5; box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.2);}
+            100% { background: #FFEFD6; }
+        }
+        .magic-label {
+            font-size: 1.2rem;
+            font-weight: 530;
+            color: #B4621A;
+            background: rgba(250, 245, 235, 0.8);
+            padding: 2px 14px;
+            border-radius: 60px;
+            backdrop-filter: blur(2px);
+        }
+
+        /* 动态图标区域 — 获得最大高度 */
+        #g1-s-view {
+            font-size: 6rem;
+            transition: all 0.15s ease;
+            text-align: center;
+            min-height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #g1-h-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            width: 100%;
+            min-height: 240px;
+        }
+
+        /* 植物组件 */
+        .stem {
+            background: linear-gradient(145deg, #5B8C5A, #2B5E2B);
+            border-radius: 28px 28px 12px 12px;
+            width: 56px;
+            transition: height 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+        }
+        .pot {
+            width: 130px;
+            height: 65px;
+            background: #A77B4F;
+            border-radius: 0 0 35px 35px;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.1), 0 5px 8px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        .pot::after {
+            content: "🌱";
+            position: absolute;
+            bottom: -12px;
+            right: -12px;
+            font-size: 1.5rem;
+            opacity: 0.7;
+        }
+
+        /* 气泡容器 */
+        .bubble-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            overflow: hidden;
+        }
+        .bubble {
+            position: absolute;
+            font-weight: 600;
+            background: rgba(255, 248, 225, 0.94);
+            padding: 0.2em 0.6em;
+            border-radius: 80px;
+            backdrop-filter: blur(4px);
+            white-space: nowrap;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+            opacity: 0;
+            z-index: 20;
+            font-family: inherit;
+            animation-duration: 2.2s;
+            animation-fill-mode: forwards;
+            animation-timing-function: ease-out;
+        }
+        .bubble.big-bubble {
+            animation-name: riseUpSlow;
+            color: #1B5E20;
+            font-size: 2.8rem;
+        }
+        .bubble.small-bubble {
+            animation-name: fallDownSlow;
+            color: #2E7D32;
+            font-size: 2rem;
+        }
+        @keyframes riseUpSlow {
+            0% { opacity: 0; transform: translateY(30px) scale(0.8); left: 5%; }
+            20% { opacity: 1; transform: translateY(0px) scale(1); }
+            80% { opacity: 1; transform: translateY(-15px) scale(1.04); }
+            100% { opacity: 0; transform: translateY(-60px) scale(0.92); left: 8%; }
+        }
+        @keyframes fallDownSlow {
+            0% { opacity: 0; transform: translateY(-30px) scale(0.8); right: 5%; }
+            20% { opacity: 1; transform: translateY(0px) scale(1); }
+            80% { opacity: 1; transform: translateY(15px) scale(1.02); }
+            100% { opacity: 0; transform: translateY(55px) scale(0.92); right: 8%; }
+        }
+
+        /* 对比游戏 */
+        .compare-box {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            width: 100%;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+        .compare-item {
+            background: white;
+            border: 1px solid #ECECEC;
+            border-radius: 44px;
+            flex: 1;
+            min-width: 200px;
+            max-width: 280px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 10px 18px rgba(0, 0, 0, 0.03);
+            padding: 12px;
+        }
+        .compare-item:hover {
+            border-color: #9BCC8F;
+            transform: scale(1.01);
+            background: #FEFDF7;
+            box-shadow: 0 12px 22px rgba(0, 0, 0, 0.05);
+        }
+        /* 高矮模式茎和盆的样式在游戏二中直接渲染，无需额外定义 */
+
+        /* 排序列表 */
+        #sort-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            list-style: none;
+            width: 100%;
+            margin: 35px 0;
+        }
+        .sort-item {
+            background: white;
+            border: 1px solid #E8EDE4;
+            border-radius: 36px;
+            width: 150px;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            transition: all 0.2s;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.02);
+        }
+        .sort-item:active { cursor: grabbing; }
+        .sort-icon { font-size: 5rem; margin-bottom: 12px; }
+        .sort-text { font-size: 1.1rem; font-weight: 540; background: #F5F7F2; padding: 6px 16px; border-radius: 60px; color: #2B5A2A; }
+
+        /* 按钮组 — 固定在底部，不会被内容推走 */
+        .btn-group {
+            display: flex;
+            gap: 16px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+        .btn {
+            border: none;
+            padding: 12px 28px;
+            border-radius: 44px;
+            cursor: pointer;
+            font-weight: 540;
+            font-size: 1rem;
+            color: white;
+            background: #3A7B3A;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.15s;
+        }
+        .btn-orange {
+            background: #E6953E;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-sm {
+            padding: 6px 20px;
+            font-size: 0.85rem;
+        }
+        .btn:active { transform: scale(0.96); background: #2E642E; }
+        .btn-orange:active { background: #CC7D2E; }
+
+        .prog {
+            position: absolute;
+            top: 20px;
+            right: 28px;
+            background: #E4EFDE;
+            color: #2F6B2F;
+            padding: 4px 16px;
+            border-radius: 40px;
+            font-weight: 530;
+            font-size: 0.85rem;
+        }
+
+        .game-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 30, 35, 0.85);
+            backdrop-filter: blur(12px);
+            color: #F9F7E8;
+            padding: 12px 28px;
+            border-radius: 60px;
+            font-weight: 500;
+            z-index: 10000;
+            font-size: 0.95rem;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            opacity: 0;
+            white-space: nowrap;
+        }
+        @media (max-width: 600px) {
+            .game-toast { white-space: normal; width: 80%; text-align: center; }
+            .compare-item { min-width: 170px; max-width: 230px; height: 260px; }
+            .bubble.big-bubble { font-size: 2rem; }
+            .bubble.small-bubble { font-size: 1.6rem; }
+            .app-container { padding: 20px 22px; }
+            .stage { padding: 12px 20px 20px 20px; }
+            .stage-content { padding-top: 70px; }
+            .btn { padding: 10px 20px; font-size: 0.9rem; }
+            .magic-label { font-size: 1rem; }
+            .magic-top-bar { top: 12px; left: 12px; right: 12px; }
+        }
+
+        #win-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(12px);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        /* 鼓励窗口 — 简洁，只保留一个图标和“魔豆长成了！” */
+        .win-card {
+            background: rgba(255, 248, 225, 0.98);
+            backdrop-filter: blur(20px);
+            padding: 40px 60px;
+            border-radius: 84px;
+            text-align: center;
+            border: 1px solid rgba(255,255,210,0.6);
+            box-shadow: 0 30px 50px rgba(0, 0, 0, 0.2);
+            animation: bounceWin 0.45s ease;
+        }
+        .win-card h1 {
+            font-size: 5rem;
+            margin-bottom: 12px;
+        }
+        .win-card h2 {
+            font-size: 2rem;
+            font-weight: 620;
+            color: #2C5F2D;
+            letter-spacing: -0.3px;
+        }
+        @keyframes bounceWin {
+            0% { transform: scale(0.85); opacity: 0; }
+            80% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .icon-palette button {
+            background: #E2CFA4;
+            border: none;
+            border-radius: 60px;
+            padding: 8px 18px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .voice-hint { display: none; }
+        .g4-feedback {
+            margin-top: 18px;
+            font-size: 1rem;
+            font-weight: 500;
+            color: #C0411E;
+            text-align: center;
+            min-height: 48px;
+        }
+        .compare-stem {
+            background: linear-gradient(145deg, #5B8C5A, #2B5E2B);
+            border-radius: 18px 18px 8px 8px;
+            width: 45px;
+        }
+        .compare-pot {
+            width: 80px;
+            height: 40px;
+            background: #A77B4F;
+            border-radius: 0 0 20px 20px;
+        }
+    </style>
+</head>
+<body>
+<div id="win-overlay"><div class="win-card"><h1>🌱</h1><h2>魔豆长成了！</h2></div></div>
+<div id="toastMsg" class="game-toast"></div>
+
+<div class="app-container">
+    <!-- 主菜单 -->
+    <div id="scr-menu" class="game-screen active">
+        <div class="main-title"><h1>🌱 杰克与魔豆 · 魔法气泡园</h1><p>语音 & 键盘 & 按钮 · 学习汉字「大 / 小 / 高 / 矮」</p></div>
+        <div class="menu-grid">
+            <div class="game-card" onclick="go('scr-g1-menu')"><div>🗣️✨</div><h3>魔法口令</h3><p>语音 / 键盘 / 按钮，趣味学习</p></div>
+            <div class="game-card" onclick="go('scr-g2-menu')"><div>🔍⚖️</div><h3>观察对比</h3><p>谁大谁小？谁高谁矮？(2倍差 / 不重复)</p></div>
+            <div class="game-card" onclick="startG3()"><div>🌿📖</div><h3>成长排序</h3><p>拖拽排列生命顺序</p></div>
+            <div class="game-card" onclick="go('scr-g4-menu')"><div>🔢🐞</div><h3>数数小苗</h3><p>阶梯难度 快乐数数</p></div>
+        </div>
+    </div>
+
+    <!-- 游戏一 二级菜单 -->
+    <div id="scr-g1-menu" class="game-screen">
+        <div class="panel-header"><button class="back-btn" onclick="go('scr-menu')">← 魔法大厅</button><h2 style="font-size:1.6rem;">🗣️ 魔法气泡屋</h2><div></div></div>
+        <div class="menu-grid">
+            <div class="game-card" onclick="initG1Size()"><h3>🐘 大小魔法屋</h3><p>喊「dà」或「xiǎo」→ 飘出汉字气泡</p></div>
+            <div class="game-card" onclick="initG1Height()"><h3>🌲 高矮魔法屋</h3><p>喊「gāo」或「ǎi」→ 飘出汉字气泡</p></div>
+        </div>
+    </div>
+
+    <!-- 大小魔法屋 —— 标题栏合并为绝对固定条 -->
+    <div id="scr-g1-size" class="game-screen">
+        <div class="panel-header">
+            <button class="back-btn" onclick="killVoice(); go('scr-g1-menu')">← 魔法屋选择</button>
+        </div>
+        <div class="stage" id="stage-size">
+            <div class="bubble-container" id="bubble-container-size"></div>
+            <!-- 顶部绝对固定魔法条 -->
+            <div class="magic-top-bar">
+                <div class="v-status" id="v-status-s">🎤 聆听「dà (大)」或「xiǎo (小)」</div>
+                <div class="magic-label" id="m-label-s">✨ 念出拼音咒语 ✨</div>
+            </div>
+            <div class="stage-content">
+                <!-- 动态 Emoji 区域，获得最大高度 -->
+                <div id="g1-s-view" style="font-size:6rem;">🐘</div>
+                <div class="icon-palette">
+                    <button class="btn-sm" style="background:#FFB74D; box-shadow:none;" onclick="randomIcon()">🎲 随机换图标</button>
+                </div>
+            </div>
+            <!-- 底部按钮组固定 -->
+            <div class="btn-group">
+                <button class="btn" id="v-btn-s" onclick="toggleVoice('size')">🎙️ 开启声控</button>
+                <button class="btn btn-orange" onclick="manualSizeChange('big')">➕ 变大 (dà 大)</button>
+                <button class="btn btn-orange" onclick="manualSizeChange('small')">➖ 变小 (xiǎo 小)</button>
+                <button class="btn" style="background:#AAA; box-shadow:0 2px 6px rgba(0,0,0,0.1);" onclick="changeSize(0, true)">🔄 重置大小</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 高矮魔法屋 -->
+    <div id="scr-g1-height" class="game-screen">
+        <div class="panel-header">
+            <button class="back-btn" onclick="killVoice(); go('scr-g1-menu')">← 魔法屋选择</button>
+        </div>
+        <div class="stage" id="stage-height">
+            <div class="bubble-container" id="bubble-container-height"></div>
+            <div class="magic-top-bar">
+                <div class="v-status" id="v-status-h">🎤 聆听「gāo (高)」或「ǎi (矮)」</div>
+                <div class="magic-label" id="m-label-h">✨ 念出生长拼音咒语 ✨</div>
+            </div>
+            <div class="stage-content">
+                <div id="g1-h-view">
+                    <div class="stem" id="g1-stem" style="height:120px;"></div>
+                    <div class="pot" id="magic-pot"></div>
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn" id="v-btn-h" onclick="toggleVoice('height')">🎙️ 开启声控</button>
+                <button class="btn btn-orange" onclick="manualHeightChange('tall')">🌱 变高 (gāo 高)</button>
+                <button class="btn btn-orange" onclick="manualHeightChange('short')">🍂 变矮 (ǎi 矮)</button>
+                <button class="btn" style="background:#AAA; box-shadow:0 2px 6px rgba(0,0,0,0.1);" onclick="changeHeight(0, true)">🔄 重置高度</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 游戏二 菜单+对战 -->
+    <div id="scr-g2-menu" class="game-screen">
+        <div class="panel-header"><button class="back-btn" onclick="go('scr-menu')">← 返回</button><h2>🔍 对比挑战 (2倍差异 | 每关不重复)</h2><div></div></div>
+        <div class="menu-grid">
+            <div class="game-card" onclick="setupG2('size')"><h3>⚖️ 比比谁更大</h3><p>体型大比拼</p></div>
+            <div class="game-card" onclick="setupG2('height')"><h3>📏 比比谁更高</h3><p>魔豆高矮赛</p></div>
+        </div>
+    </div>
+    <div id="scr-g2-play" class="game-screen">
+        <div class="panel-header"><button class="back-btn" onclick="go('scr-g2-menu')">← 退出挑战</button><h2 id="g2-title">对比观察</h2><div></div></div>
+        <div class="stage">
+            <div class="prog" id="g2-prog">1/5</div>
+            <h2 id="g2-q" style="margin-bottom:20px; color:#2B5A2B; text-align:center; background:#F6F2E2; padding:6px 24px; border-radius:80px; display:inline-block; font-weight:520;"></h2>
+            <div id="g2-box" class="compare-box"></div>
+        </div>
+    </div>
+
+    <!-- 游戏三 排序 -->
+    <div id="scr-g3" class="game-screen">
+        <div class="panel-header"><button class="back-btn" onclick="go('scr-menu')">← 返回</button><h2>🌻 植物成长排序</h2><div></div></div>
+        <div class="stage"><h3 style="color:#405D35; font-weight:520;">✨ 按生长顺序从左到右排列 ✨</h3><ul id="sort-list"></ul><button class="btn" style="width:240px;" onclick="checkG3()">✅ 完成排序 ✅</button><div id="g3-msg" style="margin-top:20px; font-weight:550; font-size:1.2rem;"></div></div>
+    </div>
+
+    <!-- 游戏四 数数 -->
+    <div id="scr-g4-menu" class="game-screen">
+        <div class="panel-header"><button class="back-btn" onclick="go('scr-menu')">← 返回</button><h2>🔢 数数小苗</h2><div></div></div>
+        <div class="menu-grid">
+            <div class="game-card" onclick="setupG4(5)"><h3>🌱 芽芽初级 (1-5)</h3></div>
+            <div class="game-card" onclick="setupG4(8)"><h3>🍃 森林挑战 (1-8)</h3></div>
+        </div>
+    </div>
+    <div id="scr-g4-play" class="game-screen">
+        <div class="panel-header"><button class="back-btn" onclick="go('scr-g4-menu')">← 退出</button><h2>🍀 数数小苗·快乐数数</h2><div></div></div>
+        <div class="stage">
+            <div class="prog" id="g4-prog">1/5</div>
+            <div id="g4-view" class="compare-box" style="height:320px; align-content:center; gap:12px;"></div>
+            <div id="g4-feedback" class="g4-feedback"></div>
+            <div id="g4-btns" class="btn-group"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ===================== 所有 function 逻辑不变 + 极值提示，游戏二图标放大 =====================
+    function showBubble(containerId, text, type) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const bubble = document.createElement('div');
+        if (type === 'big') bubble.className = 'bubble big-bubble';
+        else bubble.className = 'bubble small-bubble';
+        bubble.innerText = text;
+        const randomOffset = 10 + Math.random() * 40;
+        if (type === 'big') {
+            bubble.style.bottom = randomOffset + '%';
+            bubble.style.left = 2 + Math.random() * 12 + '%';
+        } else {
+            bubble.style.top = randomOffset + '%';
+            bubble.style.right = 2 + Math.random() * 12 + '%';
+        }
+        container.appendChild(bubble);
+        bubble.addEventListener('animationend', () => { bubble.remove(); });
+    }
+
+    let recog = null, isVoiceActive = false, voiceMode = '', lastCommandTime = 0;
+    const COOLDOWN = 420;
+    let curSize = 6, curHeight = 120;
+    let currentIcon = "🐘";
+    const iconList = ["🐘", "🦒", "🐳", "🦕", "🐊", "🦍", "🐅", "🦏", "🐫", "🦣", "🐉", "🦚", "🐙", "🐬"];
+    let roundIdx = 0, compareTarget = '', compareType = '', g2Pool = [];
+    const g2Icons = ['🐱', '🐘', '🦒', '🐹', '🦁', '🐰', '🐵', '🐮'];
+    let g4Questions = [];
+
+    function randomIcon() {
+        let newIcon = iconList[Math.floor(Math.random() * iconList.length)];
+        currentIcon = newIcon;
+        const viewDiv = document.getElementById('g1-s-view');
+        if(viewDiv) viewDiv.innerText = currentIcon;
+        showToast("✨ 图标变变变！ " + currentIcon, 800);
+    }
+
+    // 修改 size，增加极值提示
+    function changeSize(delta, reset=false) {
+        if(reset) {
+            curSize = 6;
+        } else {
+            let newSize = curSize + delta;
+            if (newSize > 22) {
+                showToast("⚠️ 太大啦！不能再大了～", 1000);
+                return;
+            }
+            if (newSize < 1.8) {
+                showToast("⚠️ 太小啦！不能再小了～", 1000);
+                return;
+            }
+            curSize = newSize;
+        }
+        const view = document.getElementById('g1-s-view');
+        if(view) view.style.fontSize = curSize + 'rem';
+        const label = document.getElementById('m-label-s');
+        if(label) {
+            if(reset) label.innerText = "✨ 已重置为原样 ✨";
+            else label.innerText = delta > 0 ? "📈 变大魔法 (dà) 大" : "📉 变小魔法 (xiǎo) 小";
+            if(!reset) setTimeout(()=>{ if(label && document.getElementById('scr-g1-size').classList.contains('active')) label.innerText = '🎤 说 dà 或 xiǎo ～'; }, 1300);
+        }
+        if(!reset) {
+            if(delta > 0) showBubble('bubble-container-size', '大', 'big');
+            else showBubble('bubble-container-size', '小', 'small');
+        }
+    }
+
+    function manualSizeChange(action) {
+        if(action === 'big') { changeSize(2.0); }
+        else if(action === 'small') { changeSize(-2.0); }
+    }
+    function manualHeightChange(action) {
+        if(action === 'tall') { changeHeight(48); }
+        else if(action === 'short') { changeHeight(-48); }
+    }
+
+    // 修改 height，增加极值提示
+    function changeHeight(delta, reset=false) {
+        if(reset) {
+            curHeight = 120;
+        } else {
+            let newHeight = curHeight + delta;
+            if (newHeight > 520) {
+                showToast("⚠️ 太高啦！不能再高了～", 1000);
+                return;
+            }
+            if (newHeight < 35) {
+                showToast("⚠️ 太矮啦！不能再矮了～", 1000);
+                return;
+            }
+            curHeight = newHeight;
+        }
+        const stem = document.getElementById('g1-stem');
+        if(stem) stem.style.height = curHeight + 'px';
+        const label = document.getElementById('m-label-h');
+        if(label) {
+            if(reset) label.innerText = "🌳 魔豆高度已重置";
+            else label.innerText = delta > 0 ? "🌿 长高魔法 (gāo) 高" : "🍂 变矮魔法 (ǎi) 矮";
+            if(!reset) setTimeout(()=>{ if(label && document.getElementById('scr-g1-height').classList.contains('active')) label.innerText = '🔊 试试说 gāo 或 ǎi'; }, 1300);
+        }
+        if(!reset) {
+            if(delta > 0) showBubble('bubble-container-height', '高', 'big');
+            else showBubble('bubble-container-height', '矮', 'small');
+        }
+    }
+
+    function parseVoiceCommand(raw, mode) {
+        if(!raw) return null;
+        let text = raw.toLowerCase();
+        if(mode === 'size') {
+            if(text.includes('da') || text.includes('大') || text.includes('达')) return 'big';
+            if(text.includes('xiao') || text.includes('小') || text.includes('晓')) return 'small';
+        } else if(mode === 'height') {
+            if(text.includes('gao') || text.includes('高') || text.includes('稿')) return 'tall';
+            if(text.includes('ai') || text.includes('矮') || text.includes('爱')) return 'short';
+        }
+        return null;
+    }
+    function executeVoiceAction(action, mode) {
+        const now = Date.now();
+        if(now - lastCommandTime < COOLDOWN) return;
+        lastCommandTime = now;
+        if(mode === 'size') {
+            if(action === 'big') changeSize(2.0);
+            else if(action === 'small') changeSize(-2.0);
+        } else if(mode === 'height') {
+            if(action === 'tall') changeHeight(48);
+            else if(action === 'short') changeHeight(-48);
+        }
+        flashEffect();
+    }
+    function flashEffect() {
+        const st = document.querySelector('.game-screen.active .stage');
+        if(st) { st.style.background='#FFF0D4'; setTimeout(()=>{ if(st) st.style.background='#FEFCF7'; },150); }
+    }
+    function toggleVoice(mode) {
+        if(isVoiceActive) { killVoice(); return; }
+        const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+        if(!SpeechRecognition) {
+            showToast("您的浏览器不支持语音识别，推荐Chrome/Edge/Safari✨", 2000);
+            return;
+        }
+        recog = new SpeechRecognition();
+        recog.continuous = true; recog.interimResults = true; recog.lang = 'zh-CN';
+        voiceMode = mode;
+        recog.onstart = () => {
+            isVoiceActive = true;
+            const sid = mode==='size'?'v-status-s':'v-status-h';
+            const bid = mode==='size'?'v-btn-s':'v-btn-h';
+            document.getElementById(sid)?.classList.add('active');
+            document.getElementById(bid).innerText = '🔇 停止声控';
+            showToast("🎤 请大声说出 “大/小” 或 “高/矮”", 1200);
+        };
+        recog.onresult = (ev) => {
+            if(!isVoiceActive) return;
+            let finalText = '';
+            for(let i = ev.resultIndex; i < ev.results.length; i++) if(ev.results[i].isFinal) { finalText = ev.results[i][0].transcript; break; }
+            if(finalText) { const action = parseVoiceCommand(finalText, voiceMode); if(action) executeVoiceAction(action, voiceMode); }
+        };
+        recog.onerror = (err) => {
+            console.warn("语音错误", err);
+            showToast("⚠️ 没听清，可以再试一次或使用按钮/键盘", 1500);
+        };
+        recog.onend = () => { if(isVoiceActive) try{ recog.start(); }catch(e){} };
+        recog.start();
+    }
+    function killVoice() {
+        isVoiceActive = false;
+        if(recog) { try{ recog.stop(); }catch(e){} recog=null; }
+        document.querySelectorAll('.v-status').forEach(el=>el.classList.remove('active'));
+        if(document.getElementById('v-btn-s')) document.getElementById('v-btn-s').innerText='🎙️ 开启声控';
+        if(document.getElementById('v-btn-h')) document.getElementById('v-btn-h').innerText='🎙️ 开启声控';
+    }
+    window.go = function(id) { killVoice(); document.querySelectorAll('.game-screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); };
+    function initG1Size() { killVoice(); curSize=6; go('scr-g1-size'); const v=document.getElementById('g1-s-view'); if(v){ v.style.fontSize='6rem'; if(!currentIcon) currentIcon='🐘'; v.innerText=currentIcon; } document.getElementById('m-label-s').innerText='✨ 喊出 dà(大) 或 xiǎo(小) ✨'; }
+    function initG1Height() { killVoice(); curHeight=120; go('scr-g1-height'); const s=document.getElementById('g1-stem'); if(s) s.style.height='120px'; document.getElementById('m-label-h').innerText='✨ 喊出 gāo(高) 或 ǎi(矮) ✨'; }
+    window.onkeydown = (e) => {
+        const sizeActive = document.getElementById('scr-g1-size').classList.contains('active');
+        const heightActive = document.getElementById('scr-g1-height').classList.contains('active');
+        if(sizeActive) { if(e.key === 'ArrowUp') { manualSizeChange('big'); e.preventDefault(); } if(e.key === 'ArrowDown') { manualSizeChange('small'); e.preventDefault(); } }
+        else if(heightActive) { if(e.key === 'ArrowUp') { manualHeightChange('tall'); e.preventDefault(); } if(e.key === 'ArrowDown') { manualHeightChange('short'); e.preventDefault(); } }
+    };
+    function setupG2(mode) { compareType=mode; roundIdx=0; g2Pool = shuffle([...Array(g2Icons.length).keys()]); nextG2(); }
+    function nextG2() {
+        go('scr-g2-play');
+        document.getElementById('g2-prog').innerText = `${roundIdx+1}/5`;
+        const icon = g2Icons[g2Pool[roundIdx % g2Pool.length]];
+        const isFindBig = Math.random() > 0.5;
+        
+        if(compareType === 'size') {
+            // 大小模式：放大图标，小的一侧最小2.6rem，大的一侧最大7rem，保持2倍左右差异
+            let smallSize = 2.6 + Math.random() * 0.8;   // 2.6 ~ 3.4
+            let largeSize = smallSize * 2.0;
+            largeSize = Math.min(7.0, largeSize);
+            // 随机左右
+            let leftSize, rightSize;
+            if(Math.random() > 0.5) { leftSize = largeSize; rightSize = smallSize; }
+            else { leftSize = smallSize; rightSize = largeSize; }
+            if(isFindBig) compareTarget = (leftSize > rightSize) ? 'L' : 'R';
+            else compareTarget = (leftSize < rightSize) ? 'L' : 'R';
+            const qText = isFindBig ? "🐘 谁的个头更大？" : "🐭 谁的个头更小？";
+            document.getElementById('g2-q').innerHTML = qText;
+            const box = document.getElementById('g2-box');
+            box.innerHTML = `<div class="compare-item" onclick="chkG2('L')"><span style="font-size:${leftSize}rem; display:inline-block;">${icon}</span></div>
+                             <div class="compare-item" onclick="chkG2('R')"><span style="font-size:${rightSize}rem; display:inline-block;">${icon}</span></div>`;
+        } 
+        else {
+            // 高矮模式：保持原有逻辑，但基础高度增加使差异更明显
+            let smallH = 50 + Math.random() * 25;   // 50~75
+            let largeH = smallH * 2.0;
+            largeH = Math.min(180, largeH);
+            let leftH, rightH;
+            if(Math.random() > 0.5) { leftH = largeH; rightH = smallH; }
+            else { leftH = smallH; rightH = largeH; }
+            if(isFindBig) compareTarget = (leftH > rightH) ? 'L' : 'R';
+            else compareTarget = (leftH < rightH) ? 'L' : 'R';
+            const qText = isFindBig ? "🌿 谁的个子更高？" : "🍃 谁的个子更矮？";
+            document.getElementById('g2-q').innerHTML = qText;
+            const box = document.getElementById('g2-box');
+            const plant = (h) => `<div style="display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; width:100%;">
+                                        <div class="compare-stem" style="height:${h}px;"></div>
+                                        <div class="compare-pot"></div>
+                                   </div>`;
+            box.innerHTML = `<div class="compare-item" onclick="chkG2('L')">${plant(leftH)}</div>
+                             <div class="compare-item" onclick="chkG2('R')">${plant(rightH)}</div>`;
+        }
+    }
+    function chkG2(choice) { if(choice===compareTarget) { if(roundIdx>=4) showWin(); else { roundIdx++; nextG2(); } } else { showToast('🔍 不对哦，再仔细观察一下！', 1000); } }
+    const stages = [{id:1,l:"种子",i:"🌰"},{id:2,l:"发芽",i:"🌱"},{id:3,l:"生长",i:"🌿"},{id:4,l:"开花",i:"🌸"},{id:5,l:"结果",i:"🍎"}];
+    function startG3() { killVoice(); go('scr-g3'); const list=document.getElementById('sort-list'); list.innerHTML=''; shuffle([...stages]).forEach(s=>{ list.innerHTML+=`<li class="sort-item" data-id="${s.id}"><div class="sort-icon">${s.i}</div><div class="sort-text">${s.l}</div></li>`; }); new Sortable(list,{animation:200}); document.getElementById('g3-msg').innerText=''; }
+    function checkG3() { const res=Array.from(document.querySelectorAll('#sort-list li')).map(li=>li.dataset.id).join(''); const msg=document.getElementById('g3-msg'); if(res==="12345") { msg.innerHTML="✅ 完美！生命顺序正确！ 🎉"; msg.style.color="#2E7D32"; setTimeout(showWin,1000); } else { msg.innerHTML="🌱 顺序不对，再观察一下植物的生长过程吧～"; msg.style.color="#D32F2F"; } }
+    function setupG4(max) { killVoice(); roundIdx=0; g4Questions=shuffle(Array.from({length:max},(_,i)=>i+1)).slice(0,5); nextG4(max); }
+    function nextG4(max) {
+        go('scr-g4-play');
+        document.getElementById('g4-prog').innerText = `${roundIdx+1}/5`;
+        const v = document.getElementById('g4-view'); v.innerHTML='';
+        const fb = document.getElementById('g4-feedback'); if(fb) fb.innerHTML='';
+        const b = document.getElementById('g4-btns'); b.innerHTML='';
+        const count = g4Questions[roundIdx];
+        for(let i=0;i<count;i++) v.innerHTML+=`<span style="font-size:3.5rem; margin:4px;">🌱</span>`;
+        for(let i=1;i<=max;i++) {
+            const btn = document.createElement('button');
+            btn.className='btn btn-orange'; btn.innerText=i;
+            btn.onclick = () => {
+                if(i===count) { if(roundIdx>=4) showWin(); else { roundIdx++; nextG4(max); } }
+                else { if(fb) { fb.innerHTML = '❌ 不对哦，再数一数 🌱 试试其他数字！'; setTimeout(()=>{ if(fb) fb.innerHTML=''; },1500); } showToast('再数一数，不是这个数字哟～', 1000); btn.style.transform='scale(0.95)'; setTimeout(()=>btn.style.transform='',200); }
+            };
+            b.appendChild(btn);
+        }
+    }
+    function showToast(msg, dur=1200) { let t=document.getElementById('toastMsg'); if(t){ t.innerText=msg; t.style.opacity='1'; setTimeout(()=>{ t.style.opacity='0'; },dur); } }
+    function showWin() { const ov=document.getElementById('win-overlay'); ov.style.display='flex'; setTimeout(()=>{ ov.style.display='none'; killVoice(); go('scr-menu'); },2200); }
+    function shuffle(arr) { for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+</script>
+</body>
+</html>
