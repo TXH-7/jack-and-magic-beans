@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>杰克与魔豆 · 魔法气泡园 | 最终完美版</title>
+    <title>杰克与魔豆 · 魔法气泡园 | 语音增强版</title>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <style>
         /* -------------------- 全局重置 -------------------- */
@@ -622,7 +622,7 @@
 </div>
 
 <script>
-    // ===================== 所有 function 逻辑不变 + 极值提示，游戏二图标放大 =====================
+    // ===================== 辅助函数：气泡、Toast、极限值等 (保持不变) =====================
     function showBubble(containerId, text, type) {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -728,18 +728,25 @@
         }
     }
 
+    // ===================== 增强版语音识别 =====================
+    // 清洗文本：移除标点、空格、多余字符，只留中文和英文字母
+    function cleanTranscript(str) {
+        return str.toLowerCase().replace(/[^\u4e00-\u9fa5a-z]/g, '');
+    }
+
     function parseVoiceCommand(raw, mode) {
-        if(!raw) return null;
-        let text = raw.toLowerCase();
-        if(mode === 'size') {
-            if(text.includes('da') || text.includes('大') || text.includes('达')) return 'big';
-            if(text.includes('xiao') || text.includes('小') || text.includes('晓')) return 'small';
-        } else if(mode === 'height') {
-            if(text.includes('gao') || text.includes('高') || text.includes('稿')) return 'tall';
-            if(text.includes('ai') || text.includes('矮') || text.includes('爱')) return 'short';
+        if (!raw) return null;
+        const text = cleanTranscript(raw);
+        if (mode === 'size') {
+            if (text.includes('大') || text === 'da') return 'big';
+            if (text.includes('小') || text === 'xiao') return 'small';
+        } else if (mode === 'height') {
+            if (text.includes('高') || text === 'gao') return 'tall';
+            if (text.includes('矮') || text === 'ai') return 'short';
         }
         return null;
     }
+
     function executeVoiceAction(action, mode) {
         const now = Date.now();
         if(now - lastCommandTime < COOLDOWN) return;
@@ -753,10 +760,12 @@
         }
         flashEffect();
     }
+
     function flashEffect() {
         const st = document.querySelector('.game-screen.active .stage');
         if(st) { st.style.background='#FFF0D4'; setTimeout(()=>{ if(st) st.style.background='#FEFCF7'; },150); }
     }
+
     function toggleVoice(mode) {
         if(isVoiceActive) { killVoice(); return; }
         const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
@@ -765,29 +774,40 @@
             return;
         }
         recog = new SpeechRecognition();
-        recog.continuous = true; recog.interimResults = true; recog.lang = 'zh-CN';
+        recog.continuous = true;
+        recog.interimResults = true;   // 确保能捕捉快速命令
+        recog.lang = 'zh-CN';
         voiceMode = mode;
         recog.onstart = () => {
             isVoiceActive = true;
             const sid = mode==='size'?'v-status-s':'v-status-h';
             const bid = mode==='size'?'v-btn-s':'v-btn-h';
             document.getElementById(sid)?.classList.add('active');
-            document.getElementById(bid).innerText = '🔇 停止声控';
+            if(document.getElementById(bid)) document.getElementById(bid).innerText = '🔇 停止声控';
             showToast("🎤 请大声说出 “大/小” 或 “高/矮”", 1200);
         };
         recog.onresult = (ev) => {
             if(!isVoiceActive) return;
-            let finalText = '';
-            for(let i = ev.resultIndex; i < ev.results.length; i++) if(ev.results[i].isFinal) { finalText = ev.results[i][0].transcript; break; }
-            if(finalText) { const action = parseVoiceCommand(finalText, voiceMode); if(action) executeVoiceAction(action, voiceMode); }
+            // 取最新的一条识别结果（包含临时和最终）
+            let lastResult = ev.results[ev.results.length - 1];
+            let transcript = lastResult[0].transcript.trim();
+            // 显示识别内容（帮助调试，也提升反馈）
+            if(transcript) showToast(`🗣️ 识别: “${transcript}”`, 800);
+            const action = parseVoiceCommand(transcript, voiceMode);
+            if(action) executeVoiceAction(action, voiceMode);
         };
         recog.onerror = (err) => {
             console.warn("语音错误", err);
             showToast("⚠️ 没听清，可以再试一次或使用按钮/键盘", 1500);
         };
-        recog.onend = () => { if(isVoiceActive) try{ recog.start(); }catch(e){} };
+        recog.onend = () => {
+            if(isVoiceActive) {
+                try{ recog.start(); } catch(e) {}
+            }
+        };
         recog.start();
     }
+
     function killVoice() {
         isVoiceActive = false;
         if(recog) { try{ recog.stop(); }catch(e){} recog=null; }
@@ -795,6 +815,8 @@
         if(document.getElementById('v-btn-s')) document.getElementById('v-btn-s').innerText='🎙️ 开启声控';
         if(document.getElementById('v-btn-h')) document.getElementById('v-btn-h').innerText='🎙️ 开启声控';
     }
+
+    // ===================== 页面切换与初始化 =====================
     window.go = function(id) { killVoice(); document.querySelectorAll('.game-screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); };
     function initG1Size() { killVoice(); curSize=6; go('scr-g1-size'); const v=document.getElementById('g1-s-view'); if(v){ v.style.fontSize='6rem'; if(!currentIcon) currentIcon='🐘'; v.innerText=currentIcon; } document.getElementById('m-label-s').innerText='✨ 喊出 dà(大) 或 xiǎo(小) ✨'; }
     function initG1Height() { killVoice(); curHeight=120; go('scr-g1-height'); const s=document.getElementById('g1-stem'); if(s) s.style.height='120px'; document.getElementById('m-label-h').innerText='✨ 喊出 gāo(高) 或 ǎi(矮) ✨'; }
@@ -812,11 +834,9 @@
         const isFindBig = Math.random() > 0.5;
         
         if(compareType === 'size') {
-            // 大小模式：放大图标，小的一侧最小2.6rem，大的一侧最大7rem，保持2倍左右差异
-            let smallSize = 2.6 + Math.random() * 0.8;   // 2.6 ~ 3.4
+            let smallSize = 2.6 + Math.random() * 0.8;
             let largeSize = smallSize * 2.0;
             largeSize = Math.min(7.0, largeSize);
-            // 随机左右
             let leftSize, rightSize;
             if(Math.random() > 0.5) { leftSize = largeSize; rightSize = smallSize; }
             else { leftSize = smallSize; rightSize = largeSize; }
@@ -829,8 +849,7 @@
                              <div class="compare-item" onclick="chkG2('R')"><span style="font-size:${rightSize}rem; display:inline-block;">${icon}</span></div>`;
         } 
         else {
-            // 高矮模式：保持原有逻辑，但基础高度增加使差异更明显
-            let smallH = 50 + Math.random() * 25;   // 50~75
+            let smallH = 50 + Math.random() * 25;
             let largeH = smallH * 2.0;
             largeH = Math.min(180, largeH);
             let leftH, rightH;
