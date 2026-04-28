@@ -506,12 +506,12 @@
 <div class="app-container">
     <!-- 主菜单 -->
     <div id="scr-menu" class="game-screen active">
-        <div class="main-title"><h1>🌱 杰克与魔豆 · 魔法气泡园</h1><p>语音 & 键盘 & 按钮 · 学习汉字「大 / 小 / 高 / 矮」</p></div>
+        <div class="main-title"><h1>🌱 杰克与魔豆 </h1><p>「大 / 小 / 高 / 矮」｜植物生长｜数数小苗</p></div>
         <div class="menu-grid">
-            <div class="game-card" onclick="go('scr-g1-menu')"><div>🗣️✨</div><h3>魔法口令</h3><p>语音 / 键盘 / 按钮，趣味学习</p></div>
-            <div class="game-card" onclick="go('scr-g2-menu')"><div>🔍⚖️</div><h3>观察对比</h3><p>谁大谁小？谁高谁矮？(2倍差 / 不重复)</p></div>
-            <div class="game-card" onclick="startG3()"><div>🌿📖</div><h3>成长排序</h3><p>拖拽排列生命顺序</p></div>
-            <div class="game-card" onclick="go('scr-g4-menu')"><div>🔢🐞</div><h3>数数小苗</h3><p>阶梯难度 快乐数数</p></div>
+            <div class="game-card" onclick="go('scr-g1-menu')"><div>🗣️✨</div><h3>魔法口令</h3><p>趣味学习</p></div>
+            <div class="game-card" onclick="go('scr-g2-menu')"><div>🔍⚖️</div><h3>观察对比</h3><p>谁大谁小？谁高谁矮？</p></div>
+            <div class="game-card" onclick="startG3()"><div>🌿📖</div><h3>成长排序</h3><p>植物是怎么长大的？</p></div>
+            <div class="game-card" onclick="go('scr-g4-menu')"><div>🔢🐞</div><h3>数数小苗</h3><p>数一数，有几棵小苗？</p></div>
         </div>
     </div>
 
@@ -519,8 +519,8 @@
     <div id="scr-g1-menu" class="game-screen">
         <div class="panel-header"><button class="back-btn" onclick="go('scr-menu')">← 魔法大厅</button><h2 style="font-size:1.6rem;">🗣️ 魔法气泡屋</h2><div></div></div>
         <div class="menu-grid">
-            <div class="game-card" onclick="initG1Size()"><h3>🐘 大小魔法屋</h3><p>喊「dà」或「xiǎo」→ 飘出汉字气泡</p></div>
-            <div class="game-card" onclick="initG1Height()"><h3>🌲 高矮魔法屋</h3><p>喊「gāo」或「ǎi」→ 飘出汉字气泡</p></div>
+            <div class="game-card" onclick="initG1Size()"><h3>🐘 大小魔法屋</h3><p>说出「dà」或「xiǎo」</p></div>
+            <div class="game-card" onclick="initG1Height()"><h3>🌲 高矮魔法屋</h3><p>说出「gāo」或「ǎi」</p></div>
         </div>
     </div>
 
@@ -533,7 +533,6 @@
             <div class="bubble-container" id="bubble-container-size"></div>
             <!-- 顶部绝对固定魔法条 -->
             <div class="magic-top-bar">
-                <div class="v-status" id="v-status-s">🎤 聆听「dà (大)」或「xiǎo (小)」</div>
                 <div class="magic-label" id="m-label-s">✨ 念出拼音咒语 ✨</div>
             </div>
             <div class="stage-content">
